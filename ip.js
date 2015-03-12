@@ -1,7 +1,7 @@
 
 
-$(function () {
-    
+$(function() {
+
     "use strict";
     var map,
             lat,
@@ -15,7 +15,7 @@ $(function () {
             countMarkers = 0,
             LatLngList = new Array();
     $('#displace').resizable({
-        resize: function (event, ui) {
+        resize: function(event, ui) {
             google.maps.event.trigger(map, 'resize');
         }
     });
@@ -25,7 +25,7 @@ $(function () {
     }
 
 
-    $('#ipSubmit').click(function () {
+    $('#ipSubmit').click(function() {
         var ip = $('#ipInput').val();
         getIpInfo(ip);
     })
@@ -38,17 +38,61 @@ $(function () {
     }
 
     function getIpInfo(ip) {
-        var whichAPI=$("select").val();
-        console.log(whichAPI);
-        $.get("http://ip-api.com/json/" + ip, function (data) {
-            if (data.status==="fail"){
-                alert(ip+" is not a valid ip address")
+        var whichAPI = $("select").val();
+        if (whichAPI === "Utrace") {
+            useUtrace(ip);
+        }
+        else if (whichAPI === "ip-api") {
+            useipapi(ip);
+        }
+
+
+    } 
+
+    function useipapi(ip) {
+        $.get("http://ip-api.com/json/" + ip, function(data) {
+            if (data.status === "fail") {
+                alert(ip + " is not a valid ip address")
                 return;
             }
-            console.log(data);
             lat = data.lat;
             lon = data.lon;
-            setBlueMarker(); //also currenly centers map there
+            loadIpInMap();
+         
+        });
+    }
+    
+    function useUtrace(ip){
+        $.get("utraceAPI.php",{ip:ip},function(data){
+            var a  = $.parseJSON(data)
+           lat = parseFloat(a.latitude);
+           lon =  parseFloat(a.longitude);
+           loadIpInMap();
+        });
+            
+        
+        
+    }
+
+
+    google.maps.event.addDomListener(window, 'load', initialize);
+    function  displayPlaces(results, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+            $("#list").empty();
+            for (var i = 0; i < 9; i++) {
+                var wrapperFunc = (function(value) {
+
+                    console.log(value + " in wrapper");
+                    getDetailedResults(value, results);
+                })(i);
+
+            }
+        }
+
+    }
+    
+    function loadIpInMap(){
+           setBlueMarker(); //also currenly centers map there
 
             //send request for hotels in area
             requestHotel = {
@@ -59,22 +103,6 @@ $(function () {
             };
             service = new google.maps.places.PlacesService(map);
             service.nearbySearch(requestHotel, displayPlaces)
-        });
-    }
-    google.maps.event.addDomListener(window, 'load', initialize);
-    function  displayPlaces(results, status) {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-            $("#list").empty();
-            for (var i = 0; i < 9; i++) {
-                var wrapperFunc = (function (value) {
-
-                    console.log(value + " in wrapper");
-                    getDetailedResults(value, results);
-                })(i);
-
-            }
-        }
-
     }
 
     function createMarker(place) {
@@ -89,7 +117,7 @@ $(function () {
             map: map,
             position: place.geometry.location
         });
-        google.maps.event.addListener(marker, 'click', function () {
+        google.maps.event.addListener(marker, 'click', function() {
             infowindow.setContent(contentString);
             infowindow.open(map, this);
         });
@@ -113,11 +141,11 @@ $(function () {
 
 
         console.log("  getting results for  " + i);
-        setTimeout(function () {
-            service.getDetails({placeId: results[i].place_id}, function (dataDetails, status) {
+        setTimeout(function() {
+            service.getDetails({placeId: results[i].place_id}, function(dataDetails, status) {
 
                 console.log(" ---" + i + "---" + status);
-                LatLngList.push(new google.maps.LatLng( dataDetails.geometry.location.k,dataDetails.geometry.location.D));
+                LatLngList.push(new google.maps.LatLng(dataDetails.geometry.location.k, dataDetails.geometry.location.D));
 
 
 
@@ -151,14 +179,14 @@ $(function () {
     }
     function boundIt() {
         var bounds = new google.maps.LatLngBounds()
-        for (var i = 0; i<LatLngList.length; i++) {
+        for (var i = 0; i < LatLngList.length; i++) {
             bounds.extend(LatLngList[i]);
-           
+
 
         }
-         console.log(bounds);
+        console.log(bounds);
         map.setCenter(bounds.getCenter())
-       map.fitBounds(bounds);
+        map.fitBounds(bounds);
     }
 
 });
